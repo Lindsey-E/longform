@@ -46,6 +46,13 @@ export async function insertScene(
   location: SceneInsertionLocation,
   open: boolean
 ) {
+  // sceneName 目前只是名称，不含路径，所以新场景默认在根目录
+  const newScene: IndentedScene = {
+    title: sceneName,
+    indent: 0,
+    relativePath: sceneName, // 新场景直接映射为 sceneName.md
+  };
+
   const newScenePath = scenePath(sceneName, draft, vault);
 
   if (!newScenePath || !draft || draft.format !== "scenes") {
@@ -56,17 +63,14 @@ export async function insertScene(
     return allDrafts.map((d) => {
       if (d.vaultPath === draft.vaultPath && d.format === "scenes") {
         if (location.at === "end") {
-          d.scenes = [...d.scenes, { title: sceneName, indent: 0 }];
+          d.scenes = [...d.scenes, newScene];
         } else {
           const relativeScene = d.scenes[location.relativeTo];
           const index =
             location.at === "before"
               ? location.relativeTo
               : location.relativeTo + 1;
-          d.scenes.splice(index, 0, {
-            title: sceneName,
-            indent: relativeScene.indent,
-          });
+          d.scenes.splice(index, 0, newScene);
         }
       }
       return d;
@@ -110,18 +114,13 @@ export function setDraftOnFrontmatterObject(
 
 export function indentedScenesToArrays(indented: IndentedScene[]) {
   const result: any = [];
-  // track our current indentation level
   let currentIndent = 0;
-  // array for the current indentation level
   let currentNesting = result;
-  // memoized arrays so that later, lesser indents can use earlier-created array
   const nestingAt: Record<number, any> = {};
   nestingAt[0] = currentNesting;
 
   indented.forEach(({ title, indent }) => {
     if (indent > currentIndent) {
-      // we're at a deeper indentation level than current,
-      // so build up a nest and memoize it
       while (currentIndent < indent) {
         currentIndent = currentIndent + 1;
         const newNesting: any = [];
@@ -130,13 +129,10 @@ export function indentedScenesToArrays(indented: IndentedScene[]) {
         currentNesting = newNesting;
       }
     } else if (indent < currentIndent) {
-      // we're at a lesser indentation level than current,
-      // so drop back to previously memoized nesting
       currentNesting = nestingAt[indent];
       currentIndent = indent;
     }
 
-    // actually insert the value
     currentNesting.push(title);
   });
   return result;
@@ -160,6 +156,7 @@ export function arraysToIndentedScenes(
       {
         title: arr,
         indent: currentIndent,
+        // relativePath 不在序列化范围内，保持 undefined 即可，后续 draftFor 会补全
       },
     ];
   }
@@ -212,7 +209,6 @@ export async function insertDraftIntoFrontmatter(
 
   const file = app.vault.getAbstractFileByPath(path);
   if (!(file instanceof TFile)) {
-    // TODO: error?
     return;
   }
   try {
