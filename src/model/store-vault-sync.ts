@@ -9,7 +9,7 @@ import {
 import { cloneDeep, isEqual } from "lodash";
 import { get, type Unsubscriber } from "svelte/store";
 
-import type { Draft } from "./types";
+import type { Draft, MultipleSceneDraft } from "./types";
 import {
   drafts as draftsStore,
   pluginSettings,
@@ -23,7 +23,11 @@ import {
   setDraftOnFrontmatterObject,
 } from "src/model/draft-utils";
 import { fileNameFromPath } from "./note-utils";
-import { findScene, sceneFolderPath, scenePath } from "./scene-navigation";
+import {
+  findSceneWithVault,
+  sceneFolderPath,
+  scenePath,
+} from "./scene-navigation";
 
 type FileWithMetadata = {
   file: TFile;
@@ -274,7 +278,7 @@ export class StoreVaultSync {
       }
     } else {
       // 场景被删除
-      const found = findScene(file.path, drafts);
+      const found = findSceneWithVault(file.path, drafts, this.vault);
       if (found) {
         draftsStore.update((_drafts) => {
           return _drafts.map((d) => {
@@ -303,7 +307,10 @@ export class StoreVaultSync {
             if (idx >= 0) {
               draftsStore.update((allDrafts) => {
                 return allDrafts.map((draft) => {
-                  if (draft.vaultPath === d.vaultPath) {
+                  if (
+                    draft.vaultPath === d.vaultPath &&
+                    draft.format === "scenes"
+                  ) {
                     draft.unknownFiles.splice(idx, 1);
                   }
                   return draft;
@@ -338,7 +345,7 @@ export class StoreVaultSync {
     } else {
       // 场景被重命名
       const newTitle = fileNameFromPath(file.path);
-      const foundOld = findScene(oldPath, drafts);
+      const foundOld = findSceneWithVault(oldPath, drafts, this.vault);
 
       const oldParent = oldPath.split("/").slice(0, -1).join("/");
       const newParent = file.parent.path;
