@@ -4,6 +4,7 @@ export const LONGFORM_CURRENT_INDEX_VERSION = 1;
 export type IndentedScene = {
   title: string;
   indent: number;
+  relativePath?: string; // 相对于 sceneFolder 的路径（不含 .md）
 };
 
 export type MultipleSceneDraft = {
@@ -16,7 +17,7 @@ export type MultipleSceneDraft = {
   sceneFolder: string;
   scenes: IndentedScene[];
   ignoredFiles: string[] | null;
-  unknownFiles: string[];
+  unknownFiles: string[]; // 现在存储的是相对路径（不含 .md）
   sceneTemplate: string | null;
 };
 
