@@ -376,11 +376,11 @@ export class StoreVaultSync {
         // 移出旧草稿
         const oldDraft = drafts.find((d) => {
           if (d.format !== "scenes") return false;
-          const folder = sceneFolderPath(d, this.vault);
+          const folder = sceneFolderPath(d as MultipleSceneDraft, this.vault);
           return (
             oldParent.startsWith(folder + "/") || oldParent === folder
           );
-        });
+        }) as MultipleSceneDraft | undefined;
         if (oldDraft) {
           const oldFolder = sceneFolderPath(oldDraft, this.vault);
           draftsStore.update((_drafts) => {
@@ -406,11 +406,11 @@ export class StoreVaultSync {
         // 移入新草稿
         const newDraft = drafts.find((d) => {
           if (d.format !== "scenes") return false;
-          const folder = sceneFolderPath(d, this.vault);
+          const folder = sceneFolderPath(d as MultipleSceneDraft, this.vault);
           return (
             newParent.startsWith(folder + "/") || newParent === folder
           );
-        });
+        }) as MultipleSceneDraft | undefined;
         if (newDraft) {
           const newFolder = sceneFolderPath(newDraft, this.vault);
           let relNew = file.path.substring(newFolder.length + 1);
