@@ -1,5 +1,47 @@
 ## Longform
 
+## 🎉 Longform 修改版 v3.0.0
+
+基于原版 Longform 插件进行了以下优化和改进：
+
+---
+
+### 🀄 代码注释全面中文化
+
+- 所有 TypeScript / Svelte 源码中的注释均已翻译为中文
+- 涵盖核心同步逻辑 (`store-vault-sync.ts`)、UI 组件、导航、工具函数等模块
+- 方便中文开发者阅读、理解和二次开发
+
+### 📐 侧边栏 UI 优化（进行中）
+
+- 针对 Obsidian 侧边栏窄宽度场景进行布局适配
+- 场景列表改为紧凑单列布局，减少水平空间占用
+- 缩进级别用精简图标表示，去除冗余层级树
+- "未知文件"和"场景"区域改为可折叠手风琴面板
+- 按钮尺寸适配侧边栏，使用 Obsidian 原生 CSS 变量
+
+### 🔧 其他改进
+
+- 修复部分 YAML 前置元数据解析的边界情况
+- 优化 Syncing 等待逻辑的稳定性
+- 代码清理，移除未使用的导入
+
+---
+
+### 📦 安装方式
+
+1. 下载下方 `longform.zip`
+2. 解压到你的 Obsidian vault 的 `.obsidian/plugins/longform/` 目录
+3. 在 Obsidian 设置中启用插件
+
+---
+
+### ⚠️ 注意
+
+本版本为社区修改版，非原版 Longform 官方发布。
+原版地址：https://github.com/kevboh/longform
+
+
 Longform is a plugin for [Obsidian](https://obsidian.md) that helps you write and edit novels, screenplays, and other long projects. It lets you organize a series of notes, or _scenes_, into an ordered manuscript. It also supports single-note projects for shorter works.
 
 > [!TIP]
