@@ -226,7 +226,7 @@ export default class LongformPlugin extends Plugin {
       if (!file) {
         return false;
       }
-      const draft = draftForPath(file.path, get(drafts));
+      const draft = draftForPath(file.path, get(drafts), this.app.vault);
       if (draft) {
         selectedDraftVaultPath.set(draft.vaultPath);
         this.initLeaf();
@@ -510,7 +510,7 @@ export default class LongformPlugin extends Plugin {
   private styleLongformLeaves(allDrafts: Draft[] = get(drafts)) {
     this.app.workspace.getLeavesOfType("markdown").forEach((leaf) => {
       if (leaf.view instanceof FileView) {
-        const draft = draftForPath(leaf.view.file.path, allDrafts);
+        const draft = draftForPath(leaf.view.file.path, allDrafts, this.app.vault);
         if (draft) {
           leaf.view.containerEl.classList.add(LONGFORM_LEAF_CLASS);
         } else {
