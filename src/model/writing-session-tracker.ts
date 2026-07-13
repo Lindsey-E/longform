@@ -198,7 +198,7 @@ export class WritingSessionTracker {
     file: TAbstractFile,
     oldPath: string | null
   ) {
-    const draft = draftForPath(file.path, get(draftsStore));
+    const draft = draftForPath(file.path, get(draftsStore), this.app.vault);
     if (draft) {
       const draftCount = await this.countWordsInDraft(draft);
       draftWordCountsStore.update((counts) => {
@@ -210,7 +210,7 @@ export class WritingSessionTracker {
     }
 
     if (oldPath) {
-      const draft = draftForPath(oldPath, get(draftsStore));
+      const draft = draftForPath(oldPath, get(draftsStore), this.app.vault);
       if (draft) {
         const draftCount = await this.countWordsInDraft(draft);
         draftWordCountsStore.update((counts) => {
