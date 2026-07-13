@@ -21,7 +21,7 @@ const callbackForFormat = (
   const file = view.file;
 
   // check if this is already a draft or scene, if so, do nothing
-  const draft = draftForPath(file.path, get(drafts));
+ const draft = draftForPath(file.path, get(drafts), app.vault);
   if (checking && draft) {
     return false;
   } else if (draft) {
