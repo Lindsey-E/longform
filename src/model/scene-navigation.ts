@@ -1,102 +1,66 @@
-import { normalizePath, type Vault } from "obsidian";
-import type { Draft, MultipleSceneDraft } from "./types";
+import {
+  type Editor,
+  type MarkdownFileInfo,
+  type MarkdownView,
+  type Vault,
+} from "obsidian";
 
-export function projectFolderPath(draft: Draft, vault: Vault): string {
-  return vault.getAbstractFileByPath(draft.vaultPath).parent.path;
-}
+import { newLeafForScene } from "src/commands/new-leaf-for-scene";
+import type { CommandBuilder } from "./types";
+import {
+  findSceneWithVault,
+  scenePath,
+  scenePathForLocation,
+  type SceneNavigationLocation,
+} from "src/model/scene-navigation";
+import { get } from "svelte/store";
+import { activeFile, selectedDraft } from "src/view/stores";
+import { drafts } from "src/model/stores";
 
-export function sceneFolderPath(
-  draft: MultipleSceneDraft,
-  vault: Vault
-): string {
-  const root = vault.getAbstractFileByPath(draft.vaultPath).parent.path;
-  return normalizePath(`${root}/${draft.sceneFolder}`);
-}
-
-export function scenePathForFolder(
-  sceneName: string,
-  folderPath: string
-): string {
-  return normalizePath(`${folderPath}/${sceneName}.md`);
-}
-
-export function scenePath(
-  sceneName: string,
-  draft: MultipleSceneDraft,
-  vault: Vault
-): string {
-  const baseFolder = sceneFolderPath(draft, vault);
-  const scene = draft.scenes.find(s => s.title === sceneName);
-  if (scene && scene.relativePath) {
-    return normalizePath(`${baseFolder}/${scene.relativePath}.md`);
-  }
-  return scenePathForFolder(sceneName, baseFolder);
-}
-
-export function findSceneWithVault(
-  path: string,
-  drafts: Draft[],
-  vault: Vault
-): { draft: Draft; index: number; currentIndent: number } | null {
-  for (const draft of drafts) {
-    if (draft.format === "scenes") {
-      const baseFolder = sceneFolderPath(draft, vault);
-      for (let i = 0; i < draft.scenes.length; i++) {
-        const scene = draft.scenes[i];
-        const computedPath = scene.relativePath
-          ? normalizePath(`${baseFolder}/${scene.relativePath}.md`)
-          : normalizePath(`${baseFolder}/${scene.title}.md`);
-        if (computedPath === path) {
-          return { draft, index: i, currentIndent: scene.indent };
-        }
-      }
-    }
-  }
-  return null;
-}
-
-export function draftForPath(
-  path: string,
-  drafts: Draft[],
-  vault: Vault
-): Draft | null {
-  for (const draft of drafts) {
-    if (draft.vaultPath === path) {
-      return draft;
-    } else {
-      const found = findSceneWithVault(path, drafts, vault);
-      if (found) {
-        return found.draft;
-      }
-    }
-  }
-  return null;
-}
-
-export type SceneNavigationLocation = {
-  position: "next" | "previous";
-  maintainIndent: boolean;
-};
-
-export function scenePathForLocation(
+function navigate(
+  checking: boolean,
   location: SceneNavigationLocation,
-  path: string,
-  drafts: Draft[],
   vault: Vault
-): string | null {
-  const found = findSceneWithVault(path, drafts, vault);
-  if (!found) return null;
+): boolean | void {
+  const draftsValue = get(drafts);
+  const path = get(activeFile).path;
+  if (!path) return false;
 
-  const draft = found.draft as MultipleSceneDraft;
-  const scenes = draft.scenes;
-  const index = found.index;
+  const target = scenePathForLocation(location, path, draftsValue, vault);
 
-  if (location.position === "next" && index < scenes.length - 1) {
-    const nextScene = scenes[index + 1];
-    return scenePath(nextScene.title, draft, vault);
-  } else if (location.position === "previous" && index > 0) {
-    const prevScene = scenes[index - 1];
-    return scenePath(prevScene.title, draft, vault);
+  if (checking) {
+    return !!target;
   }
-  return null;
+
+  if (target) {
+    newLeafForScene(target, location.maintainIndent).open();
+  }
 }
+
+export const nextScene: CommandBuilder = (plugin) => ({
+  id: "longform-next-scene",
+  name: "Next scene",
+  editorCheckCallback: (checking: boolean) =>
+    navigate(checking, { position: "next", maintainIndent: false }, plugin.app.vault),
+});
+
+export const previousScene: CommandBuilder = (plugin) => ({
+  id: "longform-previous-scene",
+  name: "Previous scene",
+  editorCheckCallback: (checking: boolean) =>
+    navigate(checking, { position: "previous", maintainIndent: false }, plugin.app.vault),
+});
+
+export const nextSceneMaintainIndent: CommandBuilder = (plugin) => ({
+  id: "longform-next-scene-maintain-indent",
+  name: "Next scene (maintain indent)",
+  editorCheckCallback: (checking: boolean) =>
+    navigate(checking, { position: "next", maintainIndent: true }, plugin.app.vault),
+});
+
+export const previousSceneMaintainIndent: CommandBuilder = (plugin) => ({
+  id: "longform-previous-scene-maintain-indent",
+  name: "Previous scene (maintain indent)",
+  editorCheckCallback: (checking: boolean) =>
+    navigate(checking, { position: "previous", maintainIndent: true }, plugin.app.vault),
+});
