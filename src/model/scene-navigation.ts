@@ -13,8 +13,9 @@ export interface SceneNavigationLocation {
 
 /**
  * 获取草稿所属的项目文件夹路径（即索引文件所在的目录）
+ * vault 参数可选，兼容旧版两参数调用
  */
-export function projectFolderPath(draft: Draft): string {
+export function projectFolderPath(draft: Draft, _vault?: Vault): string {
   return draft.vaultPath.substring(0, draft.vaultPath.lastIndexOf("/"));
 }
 
