@@ -9,51 +9,58 @@ export interface SceneNavigationLocation {
   maintainIndent: boolean;
 }
 
-// ─── 辅助函数 ────────────────────────────────────────────────
-
+// ─── 场景文件夹路径 ────────────────────────────────────────
 /**
  * 获取场景文件夹的绝对路径（相对于仓库根目录）
- * @param draft 必须是 scenes 格式的草稿
+ * 兼容旧版调用：sceneFolderPath(draft, vault)，vault 参数忽略
  */
 export function sceneFolderPath(draft: MultipleSceneDraft): string;
-export function sceneFolderPath(draft: Draft): string | null;
-export function sceneFolderPath(draft: Draft): string | null {
+export function sceneFolderPath(draft: Draft, vault?: Vault): string | null;
+export function sceneFolderPath(draft: Draft, _vault?: Vault): string | null {
   if (draft.format !== "scenes") return null;
-  // sceneFolder 存储在 draft 中，是相对于草稿索引文件父目录的路径
   const draftDir = draft.vaultPath.substring(
     0,
     draft.vaultPath.lastIndexOf("/")
   );
+  // sceneFolder 内部存储的是相对于索引文件父目录的路径
   return `${draftDir}/${draft.sceneFolder}`.replace(/\/$/, "");
 }
 
 /**
- * scenePathForFolder: 对外暴露的场景文件夹路径（与 sceneFolderPath 相同语义）
- * 在 new-draft-modal 中被使用
+ * 根据场景标题和目标文件夹路径生成场景文件的完整路径（如 new-draft-modal 中使用）
  */
-export function scenePathForFolder(draft: MultipleSceneDraft): string {
-  return sceneFolderPath(draft);
+export function scenePathForFolder(
+  sceneTitle: string,
+  folderPath: string
+): string {
+  return `${folderPath}/${sceneTitle}.md`;
 }
 
+// ─── 辅助函数 ──────────────────────────────────────────────
 /**
- * 根据场景对象和其所属的 scenes 格式草稿，生成该场景的完整文件路径
- * 优先使用 scene.relativePath（不含 .md），否则使用 scene.title
+ * 生成某个场景在仓库中的完整路径
+ * 优先使用 scene.relativePath（不含 .md），否则用 scene.title
  */
-function getSceneFilePath(scene: IndentedScene, draft: MultipleSceneDraft): string {
+function getSceneFilePath(
+  scene: IndentedScene,
+  draft: MultipleSceneDraft
+): string {
   const relative = scene.relativePath ?? scene.title;
   const folderPath = sceneFolderPath(draft);
   return `${folderPath}/${relative}.md`;
 }
 
-// ─── 场景查找函数（多处于 store-vault-sync / indentation / navigation 中调用） ──
-
+// ─── 场景查找 ──────────────────────────────────────────────
 /**
- * 在所有草稿中查找指定路径对应的场景，并附带草稿引用、索引、当前缩进信息
+ * 在所有草稿中查找指定路径对应的场景，并附上索引、当前缩进等信息
  */
 export function findScene(
   filePath: string,
   drafts: Draft[]
-): (IndentedScene & { draft: MultipleSceneDraft; index: number; currentIndent: number }) | undefined {
+): (
+  | IndentedScene
+  & { draft: MultipleSceneDraft; index: number; currentIndent: number }
+) | undefined {
   for (const draft of drafts) {
     if (draft.format !== "scenes") continue;
     const multiDraft = draft as MultipleSceneDraft;
@@ -66,7 +73,7 @@ export function findScene(
           relativePath: scene.relativePath,
           draft: multiDraft,
           index: i,
-          currentIndent: scene.indent, // 兼容 indentation 命令的调用
+          currentIndent: scene.indent,
         };
       }
     }
@@ -75,21 +82,22 @@ export function findScene(
 }
 
 /**
- * findSceneWithVault 兼容旧版签名，忽略 vault 参数，直接调用 findScene
+ * findSceneWithVault 兼容旧版签名（忽略 vault 参数）
  */
 export function findSceneWithVault(
   filePath: string,
   drafts: Draft[],
   _vault: Vault
-): (IndentedScene & { draft: MultipleSceneDraft; index: number; currentIndent: number }) | undefined {
+): (
+  | IndentedScene
+  & { draft: MultipleSceneDraft; index: number; currentIndent: number }
+) | undefined {
   return findScene(filePath, drafts);
 }
 
-// ─── 根据场景标题获取路径 ────────────────────────────────────
-
+// ─── 根据标题获取路径 ──────────────────────────────────────
 /**
- * 根据场景标题、所属草稿和 vault 实例，返回场景文件的仓库绝对路径
- * 仅在文件实际存在时返回路径，否则返回 null
+ * 根据场景标题、所属草稿和 vault 实例，返回场景文件路径（仅当文件实际存在时）
  */
 export function scenePath(
   sceneTitle: string,
@@ -104,10 +112,9 @@ export function scenePath(
   return file ? path : null;
 }
 
-// ─── 场景定位导航（上一场景 / 下一场景）────────────────────
-
+// ─── 场景导航（上一 / 下一场景）───────────────────────────
 /**
- * 核心导航函数：根据当前位置和当前文件路径，找到相邻场景的路径
+ * 根据当前位置和当前文件路径，找到相邻场景的路径
  * 支持 maintainIndent 模式（只跳到同缩进级别）
  */
 export function scenePathForLocation(
@@ -144,24 +151,20 @@ export function scenePathForLocation(
   return getSceneFilePath(targetScene, draft);
 }
 
-// ─── 根据文件路径反查所属草稿（writing-session-tracker / main 等处使用） ──
-
+// ─── 根据路径反查草稿 ─────────────────────────────────────
 /**
- * draftForPath: 根据文件路径，返回它所属的 Draft 对象
- * 如果文件是某个草稿的索引文件，直接返回该草稿；
- * 如果文件是某个草稿的场景，返回其所属草稿；
- * 否则返回 undefined。
+ * draftForPath: 根据文件路径返回它所属的 Draft 对象
+ * - 如果是草稿索引文件本身，则直接返回该草稿
+ * - 如果是某个草稿的场景文件，则返回其所属草稿
  */
 export function draftForPath(
   filePath: string,
   drafts: Draft[],
   _vault: Vault
 ): Draft | undefined {
-  // 首先检查是否为草稿索引文件本身
   const indexDraft = drafts.find((d) => d.vaultPath === filePath);
   if (indexDraft) return indexDraft;
 
-  // 检查是否为某个草稿的场景
   const sceneResult = findScene(filePath, drafts);
   if (sceneResult) return sceneResult.draft;
 
