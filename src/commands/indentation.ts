@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { Vault } from "obsidian";
+import type { Vault } from "obsidian";
 
 import { activeFile } from "src/view/stores";
 import { drafts as draftsStore } from "src/model/stores";
